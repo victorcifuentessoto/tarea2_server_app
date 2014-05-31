@@ -104,16 +104,18 @@ public class Protocolo {
     private boolean sendFile(String receptor, String nombreArchivo){
         if(nicks.containsKey(receptor)){
             ClientConn c = nicks.get(receptor);
+            System.out.println(nick);
             FileInputStream fis = null;
             BufferedInputStream bis = null;
             OutputStream os = null;
             File archivo = new File(nombreArchivo);
             byte [] mybytearray  = new byte [(int)archivo.length()];
-            try{
+            try{                
                 fis = new FileInputStream(archivo);
                 bis = new BufferedInputStream(fis);
                 bis.read(mybytearray,0,mybytearray.length);
                 
+                c.sendMsg(nick + "te ha enviado un archivo: " + nombreArchivo);
                 
             } catch (FileNotFoundException ex) {
                 Logger.getLogger(Protocolo.class.getName()).log(Level.SEVERE, null, ex);
