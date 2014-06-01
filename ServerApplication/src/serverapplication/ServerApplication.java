@@ -65,7 +65,7 @@ class ClientConn implements Runnable {
  
     public void run() {
         String msg, response;
-        Protocolo protocol = new Protocolo(this);
+        Protocolo protocol = new Protocolo(this, client);
         try {
             /* loop reading lines from the client which are processed 
              * according to our protocol and the resulting response is 

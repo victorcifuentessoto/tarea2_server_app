@@ -12,6 +12,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.Socket;
 import java.util.Hashtable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -23,13 +24,14 @@ import java.util.logging.Logger;
 public class Protocolo {
     private String nick;
     private ClientConn conn;
+    private Socket client;
  
     /* a hash table from user nicks to the corresponding connections */
     private static Hashtable<String, ClientConn> nicks = 
         new Hashtable<String, ClientConn>();
  
     private static final String msg_OK = "MENSAJE ENVIADO";
-    private static final String msg_FILE_OK = "ARCHIVO COMPARTIDO";
+    private static final String msg_FILE_OK = "ARCHIVO ENVIADO";
     private static final String msg_NICK_IN_USE = "NICK IN USE";
     private static final String msg_SPECIFY_NICK = "SPECIFY NICK";
     private static final String msg_INVALID = "COMANDO INVALIDO";
@@ -48,7 +50,8 @@ public class Protocolo {
         }
     }
  
-    public Protocolo(ClientConn c) {
+    public Protocolo(ClientConn c, Socket client) {
+        this.client = client;
         nick = null;
         conn = c;
     }
@@ -85,12 +88,7 @@ public class Protocolo {
         }
     }
  
-    /**
-     * Send a message to another user.
-     * @recepient contains the recepient's nick
-     * @msg contains the message to send
-     * return true if the nick is registered in the hash, false otherwise
-     */
+    //Envia el mensaje al cliente destinatario.
     private boolean sendMsg(String recipient, String msg) {
         if (nicks.containsKey(recipient)) {
             ClientConn c = nicks.get(recipient);
@@ -101,10 +99,10 @@ public class Protocolo {
         }
     }
     
+    //Envía el archivo al cliente destinatario.
     private boolean sendFile(String receptor, String nombreArchivo){
         if(nicks.containsKey(receptor)){
             ClientConn c = nicks.get(receptor);
-            System.out.println(nick);
             FileInputStream fis = null;
             BufferedInputStream bis = null;
             OutputStream os = null;
@@ -114,8 +112,10 @@ public class Protocolo {
                 fis = new FileInputStream(archivo);
                 bis = new BufferedInputStream(fis);
                 bis.read(mybytearray,0,mybytearray.length);
-                
-                c.sendMsg(nick + "te ha enviado un archivo: " + nombreArchivo);
+                os = client.getOutputStream();
+                os.write(mybytearray,0,mybytearray.length);
+                os.flush();
+                c.sendMsg(nick + " te ha enviado un archivo: " + nombreArchivo);
                 
             } catch (FileNotFoundException ex) {
                 Logger.getLogger(Protocolo.class.getName()).log(Level.SEVERE, null, ex);
@@ -129,16 +129,14 @@ public class Protocolo {
         else return false;
     }
  
-    /**
-     * Process a message coming from the client
-     */
+    //Procesa el mensaje escrito por el cliente usando este protocolo.
     public String process(String msg) {
         if (!isAuthenticated()) 
             return authenticate(msg);
  
         String[] msg_parts = msg.split(" ", 3);
         String comando = msg_parts[0];
- 
+        //Si el comando es un mensaje, procesarla y enviar dicho mensaje al cliente señalado por el cliente que envió el mensaje.
         if(comando.equals("MENSAJE")) {
             if(msg_parts.length < 3)
                 return msg_INVALID;
@@ -148,6 +146,7 @@ public class Protocolo {
                 return msg_OK;
             else return msg_SEND_FAILED;
         }
+        //Si el comando trata de procesar un archivo, envía éste al destinatario
         else if(comando.equals("ARCHIVO")){
             if(msg_parts.length < 3)
                 return msg_INVALID;
