@@ -72,12 +72,14 @@ public class Protocolo {
      *  msg_OK if authenticated
      *  msg_NICK_IN_USE if the specified nick is already in use
      *  msg_SPECIFY_NICK if the message does not start with the NICK command 
+     * @param msg
+     * @return 
      */
-    private String authenticate(String msg) {
+    public String authenticate(String msg) {
         if(msg.startsWith("NICK")) {
             String tryNick = msg.substring(5);
             if(add_nick(tryNick, this.conn)) {
-                log("Nick " + tryNick + " ha entrado a la sala de chat.");
+                log("Cliente con nick " + tryNick + " ha entrado a Avioncito de Papel.");
                 this.nick = tryNick;
                 return msg_OK;
             } else {

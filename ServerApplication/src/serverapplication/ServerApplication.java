@@ -15,7 +15,7 @@ import java.net.*;
 import java.io.*;
  
 public class ServerApplication {
-    private static int port = 1001; /* Puerto a ser escuchado */
+    private static int port = 8091; /* Puerto a ser escuchado */
  
     public static void main (String[] args) throws IOException {
  
@@ -37,7 +37,7 @@ public class ServerApplication {
                 System.err.println(e);
                 System.exit(1);
             }
-            /* Thread para escuchar mmúltiples clientes */
+            /* Thread para escuchar múltiples clientes */
             Thread t = new Thread(new ClientConn(client));
             t.start();
         }
@@ -64,8 +64,11 @@ class ClientConn implements Runnable {
     }
  
     public void run() {
-        String msg, response;
+        String msg, response, nick = null;
         Protocolo protocol = new Protocolo(this, client);
+        /*Lectura de cliente del nick */
+        //Se agrega el cliente que se acaba de iniciar.
+        protocol.authenticate("NICK " + nick);
         try {
             /* loop reading lines from the client which are processed 
              * according to our protocol and the resulting response is 
