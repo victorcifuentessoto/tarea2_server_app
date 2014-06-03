@@ -45,7 +45,8 @@ public class ServerApplication {
 }
  
 class ClientConn implements Runnable {
-    private Socket client;
+    private int id_cliente = 0;
+    private Socket client = null;
     private BufferedReader in = null;
     private PrintWriter out = null;
  
@@ -59,14 +60,14 @@ class ClientConn implements Runnable {
             out = new PrintWriter(client.getOutputStream(), true);
         } catch (IOException e) {
             System.err.println(e);
-            return;
         }
     }
  
     public void run() {
-        String msg, response, nick = null;
+        id_cliente += 1;
+        String msg, response, nick = "Cliente" + Integer.toString(id_cliente);
         Protocolo protocol = new Protocolo(this, client);
-        /*Lectura de cliente del nick */
+        //Lectura de cliente del nick.
         //Se agrega el cliente que se acaba de iniciar.
         protocol.authenticate("NICK " + nick);
         try {
