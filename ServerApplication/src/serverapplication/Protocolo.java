@@ -12,6 +12,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.util.Hashtable;
 import java.util.logging.Level;
@@ -32,7 +33,7 @@ public class Protocolo {
  
     private static final String msg_OK = "MENSAJE ENVIADO";
     private static final String msg_FILE_OK = "ARCHIVO ENVIADO";
-    private static final String msg_NICK_IN_USE = "NICK IN USE";
+    private static final String msg_NICK_IN_USE = "NICK EN USO";
     private static final String msg_SPECIFY_NICK = "SPECIFY NICK";
     private static final String msg_INVALID = "COMANDO INVALIDO";
     private static final String msg_SEND_FAILED = "NO SE ENCONTRÓ AL USUARIO CON EL NICK INGRESADO.";
@@ -77,10 +78,12 @@ public class Protocolo {
      */
     public String authenticate(String msg) {
         if(msg.startsWith("NICK")) {
-            String tryNick = msg.substring(5);
-            if(add_nick(tryNick, this.conn)) {
-                log("Cliente con nick " + tryNick + " ha entrado a Avioncito de Papel.");
-                this.nick = tryNick;
+            String[] msg_parts = msg.split(" ");
+            String clientNick = msg_parts[1];
+            String clientPort = msg_parts[2];
+            if(add_nick(clientNick, this.conn)) {
+                log("Cliente con nick " + clientNick + " (Puerto: " + clientPort +") ha entrado a Avioncito de Papel.");
+                this.nick = clientNick;
                 return msg_OK;
             } else {
                 return msg_NICK_IN_USE;
@@ -91,10 +94,10 @@ public class Protocolo {
     }
  
     //Envia el mensaje al cliente destinatario.
-    private boolean sendMsg(String recipient, String msg) {
+    private boolean sendMsg(String recipient, String msg) throws FileNotFoundException, UnsupportedEncodingException, IOException {
         if (nicks.containsKey(recipient)) {
             ClientConn c = nicks.get(recipient);
-            c.sendMsg(nick + " escribió: " + msg);
+            c.sendMsg(nick + " escribió: " + msg, recipient);
             return true;
         } else {
             return false;
@@ -117,7 +120,7 @@ public class Protocolo {
                 os = client.getOutputStream();
                 os.write(mybytearray,0,mybytearray.length);
                 os.flush();
-                c.sendMsg(nick + " te ha enviado un archivo: " + nombreArchivo);
+                c.sendMsg(nick + " te ha enviado un archivo: " + nombreArchivo, receptor);
                 
             } catch (FileNotFoundException ex) {
                 Logger.getLogger(Protocolo.class.getName()).log(Level.SEVERE, null, ex);
@@ -130,36 +133,55 @@ public class Protocolo {
         }
         else return false;
     }
+     private boolean receiveMsg(String receptor) throws IOException{
+         if (nicks.containsKey(receptor)) {
+            ClientConn c = nicks.get(receptor);
+            c.receiveMsg(receptor);
+            return true;
+        } else {
+            return false;
+        }                           
+     }
  
     //Procesa el mensaje escrito por el cliente usando este protocolo.
-    public String process(String msg) {
+    public String process(String msg) throws FileNotFoundException, UnsupportedEncodingException, IOException {
         if (!isAuthenticated()) 
             return authenticate(msg);
  
         String[] msg_parts = msg.split(" ", 3);
         String comando = msg_parts[0];
         //Si el comando es un mensaje, procesarla y enviar dicho mensaje al cliente señalado por el cliente que envió el mensaje.
-        if(comando.equals("MENSAJE")) {
-            if(msg_parts.length < 3)
+        switch (comando) {
+            case "MENSAJE":
+            {
+                if(msg_parts.length < 3)
+                    return msg_INVALID;
+                String contacto_a_enviar = msg_parts[1];
+                String mensaje = msg_parts[2];
+                if(sendMsg(contacto_a_enviar, mensaje))
+                    return msg_OK;
+                else return msg_SEND_FAILED;
+            }
+            //Si el comando trata de procesar un archivo, envía éste al destinatario
+            case "ARCHIVO":
+            {
+                if(msg_parts.length < 3)
+                    return msg_INVALID;
+                String contacto_a_enviar = msg_parts[1];
+                String nombre_archivo = msg_parts[2];
+                if(sendFile(contacto_a_enviar, nombre_archivo))
+                    return msg_FILE_OK;
+                else return msg_SEND_FAILED;
+            }
+            case "UPDATE":
+                if(msg_parts.length < 3)
+                    return msg_INVALID;
+                String contacto_a_enviar = msg_parts[1];
+                if(receiveMsg(contacto_a_enviar))
+                    return msg_FILE_OK;
+                else return msg_SEND_FAILED;
+            default:
                 return msg_INVALID;
-            String contacto_a_enviar = msg_parts[1];
-            String mensaje = msg_parts[2];
-            if(sendMsg(contacto_a_enviar, mensaje))
-                return msg_OK;
-            else return msg_SEND_FAILED;
-        }
-        //Si el comando trata de procesar un archivo, envía éste al destinatario
-        else if(comando.equals("ARCHIVO")){
-            if(msg_parts.length < 3)
-                return msg_INVALID;
-            String contacto_a_enviar = msg_parts[1];
-            String nombre_archivo = msg_parts[2];
-            if(sendFile(contacto_a_enviar, nombre_archivo))
-                return msg_FILE_OK;
-            else return msg_SEND_FAILED;
-        }
-        else {
-            return msg_INVALID;
         }
     }
 }

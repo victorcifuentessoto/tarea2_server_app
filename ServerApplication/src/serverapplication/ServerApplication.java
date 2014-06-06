@@ -21,7 +21,7 @@ public class ServerApplication {
  
         ServerSocket server = null;
         try {
-            server = new ServerSocket(port); /* start listening on the port */
+            server = new ServerSocket(port); /* Crea el servidor con el puerto 8091 */
         } catch (IOException e) {
             System.err.println("Puerto no encontrado: " + port);
             System.err.println(e);
@@ -45,7 +45,6 @@ public class ServerApplication {
 }
  
 class ClientConn implements Runnable {
-    private int id_cliente = 0;
     private Socket client = null;
     private BufferedReader in = null;
     private PrintWriter out = null;
@@ -64,16 +63,10 @@ class ClientConn implements Runnable {
     }
  
     public void run() {
-        id_cliente += 1;
-        String msg, response, nick = "Cliente" + Integer.toString(id_cliente);
+        String msg, response;
         Protocolo protocol = new Protocolo(this, client);
-        //Lectura de cliente del nick.
-        //Se agrega el cliente que se acaba de iniciar.
-        protocol.authenticate("NICK " + nick);
         try {
-            /* loop reading lines from the client which are processed 
-             * according to our protocol and the resulting response is 
-             * sent back to the client */
+            //Espera respuesta del cliente
             while ((msg = in.readLine()) != null) {
                 response = protocol.process(msg);
                 out.println("SERVIDOR: " + response);
@@ -83,7 +76,49 @@ class ClientConn implements Runnable {
         }
     }
  
-    public void sendMsg(String msg) {
+    public void sendMsg(String msg, String contacto) throws FileNotFoundException, UnsupportedEncodingException, IOException {
+        File file = new File("Cliente_" + contacto + ".txt");
+        if(file.exists() && !file.isDirectory()){
+            PrintWriter writer = new PrintWriter("temp.txt", "UTF-8");
+            BufferedReader reader = new BufferedReader(new FileReader("Cliente_" + contacto + ".txt"));
+            String line;
+            while((line = reader.readLine()) != null){
+                writer.println(line);
+            }
+            writer.println(msg);
+            reader.close();
+            writer.close();
+            File tempFile = new File("temp.txt");
+            PrintWriter newWriterFile = new PrintWriter("Cliente_" + contacto + ".txt", "UTF-8");
+            BufferedReader readerTmp = new BufferedReader(new FileReader("temp.txt"));
+            while((line = readerTmp.readLine()) != null){
+                newWriterFile.println(line);
+            }
+            newWriterFile.close();
+            readerTmp.close();
+            tempFile.delete();
+        }
+        else{
+            PrintWriter writer = new PrintWriter("Cliente_" + contacto + ".txt", "UTF-8");
+            writer.println(msg);
+            writer.close();
+        }
         out.println(msg);
+    }
+    
+    public String receiveMsg(String contacto) throws FileNotFoundException, IOException{
+        File file = new File("Cliente_" + contacto + ".txt");
+        if(file.exists() && !file.isDirectory()){
+            BufferedReader reader = new BufferedReader(new FileReader("Cliente_" + contacto + ".txt"));
+            String line;
+            String mensajes_nuevos = "";
+            while((line = reader.readLine()) != null){
+                mensajes_nuevos = mensajes_nuevos + line + "\n";
+            }
+            reader.close();
+            file.delete();
+            return mensajes_nuevos;
+        }
+        else return "";
     }
 }
