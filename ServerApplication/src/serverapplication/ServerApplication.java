@@ -106,7 +106,6 @@ class ClientConn implements Runnable {
             writer.println(msg);
             writer.close();
         }
-        out.println(msg);
     }
     
     public String receiveMsg(String contacto) throws FileNotFoundException, IOException{
