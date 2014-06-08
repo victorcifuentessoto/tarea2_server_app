@@ -36,7 +36,7 @@ public class Protocolo {
     private static final String msg_NICK_IN_USE = "NICK EN USO";
     private static final String msg_SPECIFY_NICK = "SPECIFY NICK";
     private static final String msg_INVALID = "COMANDO INVALIDO";
-    private static final String msg_SEND_FAILED = "NO SE ENCONTRÓ AL USUARIO CON EL NICK INGRESADO.";
+    private static final String msg_SEND_FAILED = "NO SE ENCUENTRA EL USUARIO CON EL NICK INGRESADO.";
  
     /**
      * Adds a nick to the hash table 
@@ -97,7 +97,7 @@ public class Protocolo {
     private boolean sendMsg(String recipient, String msg) throws FileNotFoundException, UnsupportedEncodingException, IOException {
         if (nicks.containsKey(recipient)) {
             ClientConn c = nicks.get(recipient);
-            c.sendMsg(nick + " escribió: " + msg, recipient);
+            c.sendMsg(nick + " escribe: " + msg, recipient);
             return true;
         } else {
             return false;
@@ -133,13 +133,12 @@ public class Protocolo {
         }
         else return false;
     }
-     private boolean receiveMsg(String receptor) throws IOException{
+     private String receiveMsg(String receptor) throws IOException{
          if (nicks.containsKey(receptor)) {
             ClientConn c = nicks.get(receptor);
-            c.receiveMsg(receptor);
-            return true;
+            return c.receiveMsg(receptor);
         } else {
-            return false;
+            return null;
         }                           
      }
  
@@ -174,12 +173,7 @@ public class Protocolo {
                 else return msg_SEND_FAILED;
             }
             case "UPDATE":
-                if(msg_parts.length < 3)
-                    return msg_INVALID;
-                String contacto_a_enviar = msg_parts[1];
-                if(receiveMsg(contacto_a_enviar))
-                    return msg_FILE_OK;
-                else return msg_SEND_FAILED;
+                return receiveMsg(nick);
             default:
                 return msg_INVALID;
         }
