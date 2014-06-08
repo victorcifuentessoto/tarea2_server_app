@@ -69,7 +69,10 @@ class ClientConn implements Runnable {
             //Espera respuesta del cliente
             while ((msg = in.readLine()) != null) {
                 response = protocol.process(msg);
-                out.println("SERVIDOR: " + response);
+                if(msg.contains("UPDATE")){
+                    out.println(response + "\n");
+                }
+                else out.println("SERVIDOR: " + response);
             }
         } catch (IOException e) {
             System.err.println(e);
